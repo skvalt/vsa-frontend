@@ -27,7 +27,14 @@ export default function useAuthForm(type = "login") {
       return false;
     }
 
-    return await login(form.username, form.password);
+    const ok = await login(form.username, form.password);
+
+    if (ok) {
+      setLocalError(null);
+      setAuthError(null);
+    }
+
+    return ok;
   }
 
   // REGISTER
@@ -43,6 +50,13 @@ export default function useAuthForm(type = "login") {
     }
 
     const ok = await register(form.username, form.email, form.password);
+
+    // FIX: CLEAN ERRORS ON SUCCESS
+    if (ok) {
+      setLocalError(null);
+      setAuthError(null);
+    }
+
     setLoading(false);
     return ok;
   }

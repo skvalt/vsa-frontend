@@ -23,8 +23,6 @@ export function AuthProvider({ children }) {
     try {
       const profile = await Api.Auth.getProfile();
       setUser(profile);
-
-      // save to localStorage
       localStorage.setItem("vsa_user", JSON.stringify(profile));
     } catch {
       clearToken();
@@ -46,7 +44,6 @@ export function AuthProvider({ children }) {
       setAuthError(null);
 
       localStorage.setItem("vsa_user", JSON.stringify(profile));
-
       return true;
     } catch {
       setAuthError("Invalid username or password");
@@ -65,7 +62,6 @@ export function AuthProvider({ children }) {
       setAuthError(null);
 
       localStorage.setItem("vsa_user", JSON.stringify(profile));
-
       return true;
     } catch (err) {
       setAuthError(err.message || "Registration failed");
