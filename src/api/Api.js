@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 // TOKEN HELPERS
 
@@ -180,7 +180,10 @@ const smallHindiToEnglish = {
   "jodo": "add",
   "nikalo": "remove",
   "ghatao": "remove",
-  "baahar": "remove"
+  "baahar": "remove",
+  "hatao": "remove",
+  "kharido": "buy",
+  "kharidna": "buy"
 };
 
 const Translate = {
