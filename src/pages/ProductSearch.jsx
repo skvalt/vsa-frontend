@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Api from "../api/Api";
 import { useCart } from "../contexts/CartContext";
 import { Mic } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 
 
@@ -29,7 +30,7 @@ export default function ProductSearch() {
   const micRef = useRef(null);
 
   
-  const user = null; // keep as null here
+  const { user } = useAuth();
   
   useEffect(() => {
     if (!results) {
@@ -138,37 +139,36 @@ export default function ProductSearch() {
 
   
   async function handleAdd(p) {
-    try {
-      
-      const stored = localStorage.getItem("vsa_user");
-      let userId = null;
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          userId = parsed?._id || parsed?.id;
-        } catch {}
-      }
+  try {
+    // Get userId from AuthContext
+    const userId = user?._id || user?.id;
 
-      await addToCart({
-        userId: userId,
-        productId: p.id,
-        name: p.name,
-        quantity: 1,
-        price: p.price,
-        unit: p.unit,
-        category: p.category,
-      });
-
-      const el = document.getElementById(`prod-${p.id}`);
-      if (el) {
-        el.classList.add("ring-2", "ring-purple-400");
-        setTimeout(() => el.classList.remove("ring-2", "ring-purple-400"), 600);
-      }
-    } catch (e) {
-      console.error("Add to cart failed", e);
-      alert("Failed to add to cart.");
+    if (!userId) {
+      alert("Please login first.");
+      return;
     }
+
+    await addToCart({
+      userId,
+      productId: p.id || p._id,
+      name: p.name,
+      quantity: 1,
+      price: p.price,
+      unit: p.unit,
+      category: p.category,
+    });
+
+    const el = document.getElementById(`prod-${p.id}`);
+    if (el) {
+      el.classList.add("ring-2", "ring-purple-400");
+      setTimeout(() => el.classList.remove("ring-2", "ring-purple-400"), 600);
+    }
+  } catch (e) {
+    console.error("Add to cart failed", e);
+    alert("Failed to add to cart.");
   }
+}
+
 
   return (
     <div className="pb-32">

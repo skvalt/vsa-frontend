@@ -8,9 +8,7 @@ export function AuthProvider({ children }) {
   const [loadingUser, setLoadingUser] = useState(true);
   const [authError, setAuthError] = useState(null);
 
-
   // RESTORE USER ON PAGE LOAD
-
   useEffect(() => {
     restoreUser();
   }, []);
@@ -25,17 +23,19 @@ export function AuthProvider({ children }) {
     try {
       const profile = await Api.Auth.getProfile();
       setUser(profile);
-    } catch (err) {
-      // Do NOT redirect or clear UI – Home should stay public
+
+      // save to localStorage
+      localStorage.setItem("vsa_user", JSON.stringify(profile));
+    } catch {
       clearToken();
       setUser(null);
+      localStorage.removeItem("vsa_user");
     }
 
     setLoadingUser(false);
   }
 
   // LOGIN
-
   async function login(username, password) {
     try {
       const res = await Api.Auth.login(username, password);
@@ -44,6 +44,9 @@ export function AuthProvider({ children }) {
       const profile = await Api.Auth.getProfile();
       setUser(profile);
       setAuthError(null);
+
+      localStorage.setItem("vsa_user", JSON.stringify(profile));
+
       return true;
     } catch {
       setAuthError("Invalid username or password");
@@ -51,9 +54,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-
   // REGISTER
-
   async function register(username, email, password) {
     try {
       const res = await Api.Auth.register(username, email, password);
@@ -61,8 +62,10 @@ export function AuthProvider({ children }) {
 
       const profile = await Api.Auth.getProfile();
       setUser(profile);
-
       setAuthError(null);
+
+      localStorage.setItem("vsa_user", JSON.stringify(profile));
+
       return true;
     } catch (err) {
       setAuthError(err.message || "Registration failed");
@@ -70,12 +73,11 @@ export function AuthProvider({ children }) {
     }
   }
 
- 
   // LOGOUT
-
   function logout() {
     clearToken();
     setUser(null);
+    localStorage.removeItem("vsa_user");
   }
 
   return (
@@ -88,7 +90,7 @@ export function AuthProvider({ children }) {
         login,
         register,
         logout,
-        isLoggedIn: !!user
+        isLoggedIn: !!user,
       }}
     >
       {children}
