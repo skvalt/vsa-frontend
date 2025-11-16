@@ -1,9 +1,11 @@
-console.log("API Base URL:", BASE_URL);
 
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;;
 
 // TOKEN HELPERS
+console.log("ENV:", import.meta.env.VITE_API_BASE_URL);
+console.log("BASE_URL:", BASE_URL);
+
 
 export function getToken() {
   return localStorage.getItem("vsa_token");
