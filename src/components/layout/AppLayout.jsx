@@ -4,7 +4,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
 
 import Footer from "../common/Footer";
-import { BackgroundCircles } from "../ui/background-circles";
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -25,15 +24,10 @@ export default function AppLayout() {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors overflow-hidden z-10">
-
-      {/* BACKGROUND */}
-      <div className="pointer-events-none absolute inset-0 z-0 opacity-40">
-        <BackgroundCircles variant="secondary" />
-      </div>
+    <div className="relative min-h-screen flex flex-col bg-transparent">
 
       {/* HEADER */}
-      <header className="sticky top-0 z-30 bg-white/60 dark:bg-gray-800/50 backdrop-blur-xl shadow-sm border-b border-white/10 dark:border-gray-700/20">
+      <header className="sticky top-0 z-30 bg-white/70 dark:bg-gray-800/60 backdrop-blur-xl shadow-sm border-b border-white/10 dark:border-gray-700/20">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
 
           <Link
@@ -56,7 +50,7 @@ export default function AppLayout() {
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl rounded-xl p-2 border border-white/20 dark:border-gray-700/20 animate-fade">
+              <div className="absolute right-0 mt-2 w-44 bg-white/90 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl rounded-xl p-2 border border-white/20 dark:border-gray-700/20 animate-fade">
 
                 {!user && (
                   <>
@@ -100,7 +94,7 @@ export default function AppLayout() {
       </header>
 
       {/* MAIN */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 pb-32 relative z-20">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 pb-32 relative z-10">
         <Outlet />
         <Footer />
       </main>

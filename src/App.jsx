@@ -10,39 +10,46 @@ import PrivateRoute from "./components/PrivateRoute";
 import Toast from "./components/common/Toast";
 
 import AppLayout from "./components/layout/AppLayout";
+import { BackgroundCircles } from "./components/ui/background-circles";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
+    <div className="relative min-h-screen overflow-hidden bg-white dark:bg-gray-900">
 
-      <Routes>
+      {/* STATIC BACKGROUND AT ROOT LEVEL */}
+      <BackgroundCircles className="absolute inset-0 z-0" />
 
-        {/* PUBLIC ROUTES ALWAYS UNDER LAYOUT */}
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<ProductSearch />} />
-        </Route>
+      {/* APP CONTENT ABOVE BACKGROUND */}
+      <div className="relative z-10">
+        <Routes>
 
-        {/* AUTH ROUTES */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+          {/* PUBLIC ROUTES */}
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/search" element={<ProductSearch />} />
+          </Route>
 
-        {/* PROTECTED ROUTES */}
-        <Route
-          element={
-            <PrivateRoute>
-              <AppLayout />
-            </PrivateRoute>
-          }
-        >
-          <Route path="/cart" element={<CartPage />} />
-        </Route>
+          {/* AUTH */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* DEFAULT FALLBACK */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* PROTECTED */}
+          <Route
+            element={
+              <PrivateRoute>
+                <AppLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route path="/cart" element={<CartPage />} />
+          </Route>
 
-      <Toast />
+          {/* DEFAULT */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+        <Toast />
+      </div>
     </div>
   );
 }
