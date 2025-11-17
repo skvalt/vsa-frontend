@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import useAuthForm from "../../hooks/useAuthForm";
+import { LogIn } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -21,25 +22,36 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6
-      bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e]">
+      bg-gradient-to-br from-[#0a0f1f] via-[#1b2343] to-[#0a0f1f]">
+
+      {/* Glow behind the card */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-600/10 blur-3xl"></div>
 
       {/* GLASS CARD */}
-      <div className="w-full max-w-sm p-8 rounded-2xl shadow-xl
-        bg-white/5 backdrop-blur-xl border border-white/10
-        text-gray-200">
+      <div className="relative w-full max-w-sm p-8 rounded-2xl shadow-2xl
+        bg-white/5 backdrop-blur-2xl border border-white/10 text-gray-200
+        animate-[fadeUp_0.6s_ease]">
 
-        <h1 className="text-3xl font-bold text-center mb-6
-          bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-          Welcome Back
-        </h1>
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500
+            flex items-center justify-center shadow-xl shadow-purple-500/30 mb-3">
+            <LogIn size={32} className="text-white" />
+          </div>
+
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 
+            bg-clip-text text-transparent">
+            Welcome Back
+          </h1>
+        </div>
 
         <form onSubmit={submit} className="flex flex-col gap-4">
 
           <input
             type="text"
             placeholder="Username"
-            className="w-full p-3 rounded-lg bg-white/10 border border-white/20
-              text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-purple-500"
+            className="w-full p-3 rounded-xl bg-white/10 border border-white/20
+              text-gray-100 placeholder-gray-400
+              focus:ring-2 focus:ring-purple-500 focus:bg-white/20 transition-all"
             value={form.username}
             onChange={(e) => updateField("username", e.target.value)}
           />
@@ -47,15 +59,16 @@ export default function Login() {
           <input
             type="password"
             placeholder="Password"
-            className="w-full p-3 rounded-lg bg-white/10 border border-white/20
-              text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-purple-500"
+            className="w-full p-3 rounded-xl bg-white/10 border border-white/20
+              text-gray-100 placeholder-gray-400
+              focus:ring-2 focus:ring-purple-500 focus:bg-white/20 transition-all"
             value={form.password}
             onChange={(e) => updateField("password", e.target.value)}
           />
 
           {(localError || authError) && (
-            <div className="text-red-300 text-sm bg-red-900/30
-              p-2 rounded border border-red-700/40">
+            <div className="text-red-300 text-sm bg-red-900/40
+              p-2 rounded-xl border border-red-700/40">
               {localError || authError}
             </div>
           )}
@@ -63,22 +76,29 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg text-white font-semibold
-              bg-gradient-to-r from-indigo-600 to-purple-600
-              hover:opacity-90 transition active:scale-95">
+            className="w-full py-3 rounded-xl text-white font-semibold
+              bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600
+              hover:opacity-90 transition-all active:scale-95 shadow-xl
+              hover:shadow-purple-500/40">
             {loading ? "Signing in…" : "Login"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-300 mt-4">
+        <p className="text-center text-sm text-gray-300 mt-5">
           New here?{" "}
-          <Link
-            to="/register"
+          <Link to="/register"
             className="text-purple-300 font-medium hover:text-purple-200">
             Create an account
           </Link>
         </p>
       </div>
+
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

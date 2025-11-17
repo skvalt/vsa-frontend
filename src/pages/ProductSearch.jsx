@@ -1,52 +1,31 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Api from "../api/Api";
-import { useCart } from "../contexts/CartContext";
 import { Mic } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-
-
-
-function useQuery() {
-  const { search } = useLocation();
-  return React.useMemo(() => new URLSearchParams(search), [search]);
-}
+import ProductMiniCard from "../components/common/ProductMiniCard.jsx";
 
 export default function ProductSearch() {
   const navigate = useNavigate();
   const location = useLocation();
   const qparams = new URLSearchParams(location.search);
 
-  const [query, setQuery] = useState(qparams.get("voice") || qparams.get("q") || "");
+  const { user } = useAuth();
+  const userId = user?._id || user?.id;
+
+  // CORE STATES
+  const [query, setQuery] = useState(qparams.get("q") || "");
   const [transcript, setTranscript] = useState(qparams.get("voice") || "");
-  const [results, setResults] = useState(null);
-  const [filtered, setFiltered] = useState(null);
+  const [results, setResults] = useState(null);   // RAW backend results
+  const [displayList, setDisplayList] = useState(null); // Filtered + Sorted Final Output
   const [loading, setLoading] = useState(false);
 
-  const [maxPrice, setMaxPrice] = useState(2000);
   const [category, setCategory] = useState(qparams.get("category") || "all");
+  const [sortBy, setSortBy] = useState("relevance");
 
-  const { addToCart } = useCart();
   const micRef = useRef(null);
 
-  
-  const { user } = useAuth();
-  
-  useEffect(() => {
-    if (!results) {
-      setFiltered(null);
-      return;
-    }
-    let temp = [...results];
-    if (category && category !== "all") {
-      temp = temp.filter(
-        (p) => p.category && p.category.toLowerCase() === category.toLowerCase()
-      );
-    }
-    temp = temp.filter((p) => (p.price || 0) <= maxPrice);
-    setFiltered(temp);
-  }, [results, category, maxPrice]);
-
+  // ==== ORIGINAL LOGIC RESTORED ====
   useEffect(() => {
     const cat = qparams.get("category");
     const voice = qparams.get("voice");
@@ -54,255 +33,219 @@ export default function ProductSearch() {
 
     if (cat) {
       setCategory(cat);
-      setQuery(cat); 
-      setTranscript(""); 
-      setTimeout(() => doSearch(cat, { isCategory: true }), 200);
+      setQuery(cat);
+      setTimeout(() => doSearch(cat, { isCategory: true }), 180);
       return;
     }
 
     if (voice) {
-      setQuery(voice);
       setTranscript(voice);
-      setTimeout(() => doSearch(voice, { isCategory: false }), 250);
+      setQuery(voice);
+      setTimeout(() => doSearch(voice, { isCategory: false }), 180);
       return;
     }
 
     if (q) {
       setQuery(q);
       setTimeout(() => doSearch(q, { isCategory: false }), 150);
+      return;
     }
-   
-  }, []); 
 
+    // DEFAULT: show ALL products
+    loadAllProducts();
+  }, []);
 
-  async function doSearch(custom, opts = { isCategory: false }) {
-    const finalQuery = (custom ?? query ?? "").trim();
-    if (!finalQuery) return;
+  // LOAD ALL PRODUCTS FOR DEFAULT VIEW
+  async function loadAllProducts() {
     setLoading(true);
-    setFiltered(null);
-    setResults(null);
+    try {
+      const all = await Api.Products.getAll();
+      setResults(all || []);
+      setDisplayList(all || []);
+    } catch (err) {
+      console.error("LoadAll error:", err);
+      setResults([]);
+    }
+    setLoading(false);
+  }
 
-    
-    const params = new URLSearchParams();
-    if (category && category !== "all") params.set("category", category);
-    if (!opts.isCategory) params.set("q", finalQuery);
-    navigate({ pathname: "/search", search: params.toString() }, { replace: true });
+  // FILTER + SORT (PURE CLIENT SIDE)
+  useEffect(() => {
+    if (!results) return;
+
+    let temp = [...results];
+
+    if (category !== "all") {
+      temp = temp.filter(
+        (p) =>
+          p.category &&
+          p.category.toLowerCase() === category.toLowerCase()
+      );
+    }
+
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      temp = temp.filter((p) =>
+        `${p.name} ${p.brand || ""} ${p.category || ""}`.toLowerCase().includes(q)
+      );
+    }
+
+    // SORTING
+    if (sortBy === "price_asc") temp.sort((a, b) => a.price - b.price);
+    if (sortBy === "price_desc") temp.sort((a, b) => b.price - a.price);
+    if (sortBy === "discount")
+      temp.sort(
+        (a, b) =>
+          ((b.salePercent || 0) - (a.salePercent || 0))
+      );
+
+    setDisplayList(temp);
+  }, [results, category, sortBy, query]);
+
+  // FULL SEARCH FUNCTION
+  async function doSearch(customText, options = { isCategory: false }) {
+    const finalQuery = (customText ?? query ?? "").trim();
+    setLoading(true);
+    setDisplayList(null);
+    setResults(null);
 
     try {
       let data;
-      if (opts.isCategory) {
-        
+      if (options.isCategory) {
         data = await Api.Products.getByCategory(finalQuery);
       } else {
         data = await Api.Products.search(finalQuery);
       }
+
       setResults(data || []);
     } catch (err) {
-      console.error("Search error:", err);
+      console.error("Search failed:", err);
       setResults([]);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
+
+    // Update URL
+    const params = new URLSearchParams();
+    if (category !== "all") params.set("category", category);
+    if (!options.isCategory && finalQuery) params.set("q", finalQuery);
+    navigate({ pathname: "/search", search: params.toString() }, { replace: true });
   }
 
-  // Voice input: sets transcript + query + auto-search
+  // VOICE INPUT
   function voiceInput() {
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert("Voice recognition not supported in this browser.");
+      alert("Browser does not support voice.");
       return;
     }
 
     const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new Speech();
     rec.lang = "en-IN";
-    rec.interimResults = false;
-    rec.start();
 
-   
-    if (micRef.current) micRef.current.classList.add("animate-pulse");
+    micRef.current?.classList.add("animate-pulse");
+    rec.start();
 
     rec.onresult = (e) => {
       const text = e.results[0][0].transcript;
       setTranscript(text);
       setQuery(text);
-      setTimeout(() => doSearch(text, { isCategory: false }), 200);
+      doSearch(text);
     };
 
-    rec.onerror = () => {
-      if (micRef.current) micRef.current.classList.remove("animate-pulse");
-    };
-
-    rec.onend = () => {
-      if (micRef.current) micRef.current.classList.remove("animate-pulse");
-    };
+    rec.onend = () => micRef.current?.classList.remove("animate-pulse");
   }
 
-  
-  async function handleAdd(p) {
-  try {
-    // Get userId from AuthContext
-    const userId = user?._id || user?.id;
-
-    if (!userId) {
-      alert("Please login first.");
-      return;
-    }
-
-    await addToCart({
-      userId,
-      productId: p.id || p._id,
-      name: p.name,
-      quantity: 1,
-      price: p.price,
-      unit: p.unit,
-      category: p.category,
-    });
-
-    const el = document.getElementById(`prod-${p.id}`);
-    if (el) {
-      el.classList.add("ring-2", "ring-purple-400");
-      setTimeout(() => el.classList.remove("ring-2", "ring-purple-400"), 600);
-    }
-  } catch (e) {
-    console.error("Add to cart failed", e);
-    alert("Failed to add to cart.");
-  }
-}
-
+  const CATEGORIES = ["all", "Vegetables", "Dairy", "Bakery", "Snacks", "Personal Care"];
 
   return (
-    <div className="pb-32">
+    <div className="pb-32 px-4 sm:px-6 max-w-7xl mx-auto">
 
-      {/* search row */}
-      <div className="flex gap-3 items-center">
+      {/* SEARCH ROW */}
+      <div className="flex gap-3 items-center mt-4">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }}
-          placeholder="Search products (try 'biscuit' or say it)…"
-          className="flex-1 p-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm focus:ring-2 focus:ring-purple-500 transition"
+          onKeyDown={(e) => e.key === "Enter" && doSearch()}
+          placeholder="Search products..."
+          className="flex-1 p-3 bg-gray-900/40 text-gray-100 rounded-2xl border border-white/10 focus:ring-2 focus:ring-blue-500"
         />
 
-        {/* mic with ref */}
         <button
           ref={micRef}
           onClick={voiceInput}
-          title="Voice search"
-          className="p-3 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg"
+          className="p-3 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white"
         >
           <Mic size={18} />
         </button>
 
         <button
           onClick={() => doSearch()}
-          className="px-4 py-2 rounded-xl bg-indigo-600 text-white shadow-md active:scale-95"
+          className="px-4 py-2 bg-blue-600 text-white rounded-2xl"
         >
           Search
         </button>
       </div>
 
-      {/* transcript / small helper row */}
-      {transcript && (
-        <div className="mt-3 flex items-center gap-3">
-          <div className="text-xs text-gray-400">Voice:</div>
-          <div className="text-sm px-3 py-1 rounded-full bg-gray-800 text-gray-100 shadow-sm">
-            {transcript}
-          </div>
-          <button
-            onClick={() => {
-              setTranscript("");
-              setQuery("");
-              setResults(null);
-              setFiltered(null);
-              navigate("/search", { replace: true });
+      {/* FILTER BAR */}
+      <div className="mt-4 p-4 bg-gray-900/30 rounded-2xl flex flex-wrap gap-4 items-center">
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Category</span>
+          <select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              doSearch(e.target.value, { isCategory: e.target.value !== "all" });
             }}
-            className="ml-2 text-xs text-red-400"
+            className="p-2 bg-gray-900/50 rounded-xl text-gray-100 border border-white/10"
           >
-            Clear
-          </button>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c === "all" ? "All" : c}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
 
-      {/* filters */}
-      {results && (
-        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-2xl flex flex-col gap-3">
-          <div className="flex gap-3 items-center">
-            <label className="text-xs text-gray-500 dark:text-gray-400">Category</label>
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                // if user picks a category from select, run category endpoint
-                if (e.target.value && e.target.value !== "all") {
-                  setQuery(e.target.value);
-                  doSearch(e.target.value, { isCategory: true });
-                } else {
-                  // fallback to showing full results (or clear)
-                  setResults([]);
-                }
-              }}
-              className="p-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600"
-            >
-              <option value="all">All</option>
-              <option value="vegetables">Vegetables</option>
-              <option value="snacks">Snacks</option>
-              <option value="personal care">Personal Care</option>
-              <option value="dairy">Dairy</option>
-              <option value="bakery">Bakery</option>
-            </select>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Sort</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="p-2 bg-gray-900/50 rounded-xl text-gray-100 border border-white/10"
+          >
+            <option value="relevance">Relevance</option>
+            <option value="price_asc">Low to High</option>
+            <option value="price_desc">High to Low</option>
+            <option value="discount">Discounted</option>
+          </select>
+        </div>
 
-            <div className="flex-1" />
+        <div className="flex-1 text-right text-xs text-gray-400">
+          Showing {displayList ? displayList.length : 0} results
+        </div>
+      </div>
 
-            <label className="text-xs text-gray-500 dark:text-gray-400">Max Price: ₹{maxPrice}</label>
+      {/* RESULTS */}
+      <div className="mt-6">
+        {loading ? (
+          <div className="text-gray-400 text-center py-10">Searching…</div>
+        ) : !displayList ? (
+          <div className="text-gray-400 text-center py-10">No results.</div>
+        ) : displayList.length === 0 ? (
+          <div className="text-gray-400 text-center py-10">No products found.</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {displayList.map((p) => (
+              <ProductMiniCard
+                key={p.id || p._id}
+                product={{ ...p, userId }}
+              />
+            ))}
           </div>
-
-          <input
-            type="range"
-            min="10"
-            max="5000"
-            step="10"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-      )}
-
-      {/* loader */}
-      {loading && (
-        <div className="mt-6 text-center text-gray-500">Searching…</div>
-      )}
-
-      {/* results grid */}
-      {filtered && (
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          {filtered.length === 0 && (
-            <div className="col-span-2 text-center text-gray-500">No products found.</div>
-          )}
-
-          {filtered.map((p) => (
-            <div
-              id={`prod-${p.id}`}
-              key={p.id}
-              className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1"
-            >
-              <div className="font-medium text-gray-900 dark:text-white">{p.name}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{p.brand || "Generic"} • {p.category}</div>
-
-              <div className="flex items-center justify-between mt-3">
-                <div className="text-indigo-600 dark:text-indigo-300 font-semibold">₹{p.price ?? "-"}</div>
-
-                <button
-                  onClick={() => handleAdd(p)}
-                  className="px-3 py-1 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 text-white text-sm active:scale-95 shadow"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
