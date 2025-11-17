@@ -5,9 +5,9 @@ export function BackgroundCircles({ className = "" }) {
       style={{
         background: `
           radial-gradient(circle at center,
-            rgba(173, 216, 255, 1) 0%,
-            rgba(120, 165, 240, 0.9) 40%,
-            rgba(55, 110, 200, 1) 80%
+            rgba(117, 145, 176, 1) 0%,
+            rgba(81, 111, 163, 0.68) 40%,
+            rgba(32, 57, 98, 1) 80%
           )
         `,
       }}

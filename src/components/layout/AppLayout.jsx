@@ -127,11 +127,11 @@ export default function AppLayout() {
           align-items: center;
           gap: 3px;
           font-size: 11px;
-          color: #777;
+          color: #706a68ff;
           transition: all 0.2s ease;
         }
         .nav-btn.active {
-          color: #6d28d9;
+          color: #3e9cc2ff;
           font-weight: 600;
           transform: scale(1.08);
         }
